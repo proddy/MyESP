@@ -385,7 +385,7 @@ bool MyESP::mqttSubscribe(const char * topic) {
 
         if (packet_id) {
             // add to mqtt log
-            _addMQTTLog(topic_s, "", 2); // type of 2 means Subscribe. Has an empty payload for now
+            _addMQTTLog(topic_s, "", MYESP_MQTTLOGTYPE_SUBSCRIBE); // Has an empty payload for now
             return true;
         } else {
             myDebug_P(PSTR("[MQTT] Error subscribing to %s, error %d"), _mqttTopic(topic), packet_id);
@@ -417,7 +417,7 @@ bool MyESP::mqttPublish(const char * topic, const char * payload, bool retain) {
         uint16_t packet_id = mqttClient.publish(_mqttTopic(topic), _mqtt_qos, retain, payload);
 
         if (packet_id) {
-            _addMQTTLog(topic, payload, 1); // add to the log, using type of 1 for Publish
+            _addMQTTLog(topic, payload, MYESP_MQTTLOGTYPE_PUBLISH); // add to the log
             return true;
         } else {
             myDebug_P(PSTR("[MQTT] Error publishing to %s with payload %s [error %d]"), _mqttTopic(topic), payload, packet_id);
@@ -462,8 +462,8 @@ void MyESP::_mqtt_setup() {
 
     mqttClient.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
         if (reason == AsyncMqttClientDisconnectReason::TCP_DISCONNECTED) {
-            myDebug_P(PSTR("[MQTT] TCP Disconnected"));
-            _increaseSystemDropoutCounter();                             // +1 to number of disconnects
+            _increaseSystemDropoutCounter(); // +1 to number of disconnects
+            myDebug_P(PSTR("[MQTT] TCP Disconnected (count %d)"), _getSystemDropoutCounter());
             (_mqtt_callback_f)(MQTT_DISCONNECT_EVENT, nullptr, nullptr); // call callback with disconnect
         }
         if (reason == AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED) {
@@ -2407,8 +2407,8 @@ void MyESP::_sendEventLog(uint8_t page) {
 
         // see if we have reached the end of the string
         if (c == '\0' || c == '\n') {
-            char_buffer[char_count] = '\0'; // terminate and add it to the list
-            Serial.printf("Got line %d: %s\n", line_count+1, char_buffer); // for debugging XXX
+            char_buffer[char_count] = '\0';                                  // terminate and add it to the list
+            Serial.printf("Got line %d: %s\n", line_count + 1, char_buffer); // for debugging XXX
             list.add(char_buffer);
             // increment line counter and check if we've reached 10 records, if so abort
             if (++line_count == 10) {
@@ -2870,8 +2870,13 @@ void MyESP::_printMQTTLog() {
     uint8_t i;
 
     for (i = 0; i < MYESP_MQTTLOG_MAX; i++) {
-        if ((MQTT_log[i].topic != nullptr) && (MQTT_log[i].type == 1)) {
-            myDebug_P(PSTR("  Topic:%s Payload:%s"), MQTT_log[i].topic, MQTT_log[i].payload);
+        if ((MQTT_log[i].topic != nullptr) && (MQTT_log[i].type == MYESP_MQTTLOGTYPE_PUBLISH)) {
+            myDebug_P(PSTR("  Timestamp:%02d:%02d:%02d Topic:%s Payload:%s"),
+                      to_hour(MQTT_log[i].timestamp),
+                      to_minute(MQTT_log[i].timestamp),
+                      to_second(MQTT_log[i].timestamp),
+                      MQTT_log[i].topic,
+                      MQTT_log[i].payload);
         }
     }
 
@@ -2879,12 +2884,8 @@ void MyESP::_printMQTTLog() {
     myDebug_P(PSTR("MQTT subscriptions:"));
 
     for (i = 0; i < MYESP_MQTTLOG_MAX; i++) {
-        if ((MQTT_log[i].topic != nullptr) && (MQTT_log[i].type == 2)) {
-            if (_hasValue(MQTT_log[i].payload)) {
-                myDebug_P(PSTR("  Topic:%s Last Payload:%s"), MQTT_log[i].topic, MQTT_log[i].payload);
-            } else {
-                myDebug_P(PSTR("  Topic:%s"), MQTT_log[i].topic);
-            }
+        if ((MQTT_log[i].topic != nullptr) && (MQTT_log[i].type == MYESP_MQTTLOGTYPE_SUBSCRIBE)) {
+            myDebug_P(PSTR("  Topic:%s"), MQTT_log[i].topic);
         }
     }
 
@@ -2892,8 +2893,7 @@ void MyESP::_printMQTTLog() {
 }
 
 // add an MQTT log entry to our buffer
-// type 0=none, 1=publish, 2=subscribe
-void MyESP::_addMQTTLog(const char * topic, const char * payload, const uint8_t type) {
+void MyESP::_addMQTTLog(const char * topic, const char * payload, const MYESP_MQTTLOGTYPE_t type) {
     static uint8_t logCount   = 0;
     uint8_t        logPointer = 0;
     bool           found      = false;
@@ -2927,7 +2927,7 @@ void MyESP::_addMQTTLog(const char * topic, const char * payload, const uint8_t 
     }
 
     // and add new record
-    MQTT_log[logPointer].type      = type; // 0=none, 1=publish, 2=subscribe
+    MQTT_log[logPointer].type      = type;
     MQTT_log[logPointer].topic     = strdup(topic);
     MQTT_log[logPointer].payload   = strdup(payload);
     MQTT_log[logPointer].timestamp = now();

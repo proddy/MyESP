@@ -95,7 +95,7 @@ void MQTTCallback(unsigned int type, const char * topic, const char * message) {
 }
 
 // callback for loading/saving settings to the file system (SPIFFS)
-bool LoadSaveCallback(MYESP_FSACTION action, JsonObject json) {
+bool LoadSaveCallback(MYESP_FSACTION_t action, JsonObject json) {
     if (action == MYESP_FSACTION_LOAD) {
         const JsonObject & hardware = json["hardware"];
         _ledpin                     = hardware["ledpin"];
@@ -118,7 +118,7 @@ bool LoadSaveCallback(MYESP_FSACTION action, JsonObject json) {
 // callback for custom settings when showing Stored Settings
 // wc is number of arguments after the 'set' command
 // returns true if the setting was recognized and changed
-bool SetListCallback(MYESP_FSACTION action, uint8_t wc, const char * setting, const char * value) {
+bool SetListCallback(MYESP_FSACTION_t action, uint8_t wc, const char * setting, const char * value) {
     bool ok = false;
 
     if (action == MYESP_FSACTION_SET) {
