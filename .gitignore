@@ -1,0 +1,20 @@
+# vscode
+.vscode
+
+# platformio
+.pio
+lib/readme.txt
+
+# web stuff compiled
+src/websrc/temp
+src/webh/*.gz.h
+
+# NPM directories
+node_modules
+
+# OS specific
+.DS_Store
+
+# project specfic
+scripts/stackdmp.txt
+firmware

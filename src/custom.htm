@@ -1,0 +1,67 @@
+<div id="customcontent">
+    <br>
+    <br>
+    <legend>Custom Settings</legend>
+    <h6 class="text-muted">Please refer to the Help for configuration options.</h6>
+    <br>
+
+    <div class="row form-group">
+        <label class="col-xs-3">LED pin<i style="margin-left: 10px;" class="glyphicon glyphicon-exclamation-sign"
+                aria-hidden="true" data-toggle="popover" data-trigger="hover" data-placement="right"
+                data-content="Choose &quot;LED pin&quot; pin. Requires Restart."></i></label>
+        <span class="col-xs-9 col-md-5">
+            <select class="form-control input-sm" id="ledpin">
+                <option selected="selected" value="255">None</option>
+                <option value="0">GPIO-0</option>
+                <option value="1">GPIO-1</option>
+                <option value="2">GPIO-2 (LED_BUILTIN)</option>
+                <option value="4">GPIO-4</option>
+                <option value="5">GPIO-5</option>
+                <option value="12">GPIO-12</option>
+                <option value="13">GPIO-13</option>
+                <option value="14">GPIO-14</option>
+                <option value="15">GPIO-15</option>
+                <option value="16">GPIO-16</option>
+            </select>
+        </span>
+    </div>
+
+    <br>
+    <div class="row form-group">
+        <div class="col-xs-9 col-md-8">
+            <button onclick="savecustom()" class="btn btn-primary btn-sm pull-right">Save</button>
+        </div>
+    </div>
+</div>
+
+<div id="custom_statuscontent">
+    <br>
+    <div class="row text-center">
+        <div class="col-md-8 col-md-offset-2">
+            <h1>Dashboard</h1>
+            <p>Add your custom text here.</p>
+        </div>
+        <div class="col-md-8 col-md-offset-2">
+            <div class="panel panel-default table-responsive">
+                <table class="table table-hover table-striped table-condensed">
+                    <caption>MyESP1 title</caption>
+                    <tr>
+                        <th>MyESP1</th>
+                        <td id="myesp1"></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="panel panel-default table-responsive">
+                <table class="table table-hover table-striped table-condensed">
+                    <caption>MyESP2 title</caption>
+                    <tr>
+                        <th>MyESP2</th>
+                        <td id="myesp2"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <br>
+        <br>
+    </div>
+</div>
