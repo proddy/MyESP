@@ -351,7 +351,9 @@ void MyESP::_mqttOnMessage(char * topic, char * payload, size_t len) {
     char message[len + 1];
     strlcpy(message, (char *)payload, len + 1);
 
-    // myDebug_P(PSTR("[MQTT] Received %s => %s"), topic, message); // enable for debugging
+#ifdef MYESP_DEBUG
+    myDebug_P(PSTR("[MQTT] Received %s => %s"), topic, message);
+#endif
 
     // topics are in format MQTT_BASE/HOSTNAME/TOPIC
     char * topic_magnitude = strrchr(topic, '/'); // strip out everything until last /
@@ -410,7 +412,9 @@ bool MyESP::mqttPublish(const char * topic, const char * payload) {
 // returns true if all good
 bool MyESP::mqttPublish(const char * topic, const char * payload, bool retain) {
     if (mqttClient.connected() && (strlen(topic) > 0)) {
-        //myDebug_P(PSTR("[MQTT] Sending publish to %s with payload %s"), _mqttTopic(topic), payload); // for debugging
+#ifdef MYESP_DEBUG
+        myDebug_P(PSTR("[MQTT] Sending publish to %s with payload %s"), _mqttTopic(topic), payload);
+#endif
         uint16_t packet_id = mqttClient.publish(_mqttTopic(topic), _mqtt_qos, retain, payload);
 
         if (packet_id) {
@@ -1422,8 +1426,9 @@ void MyESP::_heartbeatCheck(bool force = false) {
     if ((millis() - last_heartbeat > MYESP_HEARTBEAT_INTERVAL) || force) {
         last_heartbeat = millis();
 
-        // _printHeap("Heartbeat"); // for heartbeat debugging
-
+#ifdef MYESP_DEBUG
+        _printHeap("Heartbeat");
+#endif
         if (!isMQTTConnected() || !(_mqtt_heartbeat)) {
             return;
         }
@@ -1445,8 +1450,6 @@ void MyESP::_heartbeatCheck(bool force = false) {
 
         char data[300] = {0};
         serializeJson(doc, data, sizeof(data));
-
-        // myDebugLog("Publishing hearbeat via MQTT");
 
         (void)mqttPublish(MQTT_TOPIC_HEARTBEAT, data, false); // send to MQTT with retain off
     }
@@ -1477,6 +1480,7 @@ void MyESP::_telnetHandle() {
     SerialAndTelnet.handle();
 
     static uint8_t charsRead = 0;
+
     // read asynchronously until full command input
     while (SerialAndTelnet.available()) {
         char c = SerialAndTelnet.read();
@@ -1595,7 +1599,9 @@ char * MyESP::_mqttTopic(const char * topic) {
 
 // validates a file in SPIFFS, loads it into the json buffer and returns true if ok
 size_t MyESP::_fs_validateConfigFile(const char * filename, size_t maxsize, JsonDocument & doc) {
-    // myDebug_P(PSTR("[FS] Checking file %s"), filename); // remove for debugging
+#ifdef MYESP_DEBUG
+    myDebug_P(PSTR("[FS] Checking file %s"), filename);
+#endif
 
     // see if we can open it
     File file = SPIFFS.open(filename, "r");
@@ -1636,7 +1642,9 @@ size_t MyESP::_fs_validateConfigFile(const char * filename, size_t maxsize, Json
         return 0;
     }
 
-    // serializeJsonPretty(doc, Serial); // enable for debugging
+#ifdef MYESP_DEBUG
+    serializeJsonPretty(doc, Serial);
+#endif
 
     file.close();
     delete[] buffer;
@@ -1661,7 +1669,9 @@ size_t MyESP::_fs_validateLogFile(const char * filename) {
     // check sizes
     size_t size    = eventlog.size();
     size_t maxsize = ESP.getFreeHeap() - 2000; // reserve some buffer
-    // myDebug_P(PSTR("[FS] Checking file %s (%d/%d bytes)"), filename, size, maxsize); // remove for debugging
+#ifdef MYESP_DEBUG
+    myDebug_P(PSTR("[FS] Checking file %s (%d/%d bytes)"), filename, size, maxsize);
+#endif
     if (size > maxsize) {
         eventlog.close();
         myDebug_P(PSTR("[FS] File %s size %d is too large"), filename, size);
@@ -1710,7 +1720,9 @@ size_t MyESP::_fs_validateLogFile(const char * filename) {
         // see if we have reached the end of the string
         if (c == '\0' || c == '\n') {
             char_buffer[char_count] = '\0'; // terminate and add it to the list
-            // Serial.printf("Got line: %s\n", char_buffer); // for debugging
+#ifdef MYESP_DEBUG
+            Serial.printf("Got line: %s\n", char_buffer);
+#endif
             // validate it by looking at JSON structure
             DeserializationError error = deserializeJson(doc, char_buffer);
             if (error) {
@@ -1984,7 +1996,9 @@ bool MyESP::fs_saveConfig(JsonObject root) {
             ok = true;
         }
 
-        // serializeJsonPretty(root, Serial); // for debugging
+#ifdef MYESP_DEBUG
+        serializeJsonPretty(root, Serial);
+#endif
     }
 
     if (_ota_post_callback_f) {
@@ -2091,13 +2105,13 @@ void MyESP::_fs_setup() {
     if (size) {
         myDebug_P(PSTR("[FS] Event log loaded (%d bytes)"), size);
     } else {
-        /* XXX
+#ifndef MYESP_DEBUG
         myDebug_P(PSTR("[FS] Resetting event log"));
         SPIFFS.remove(MYESP_EVENTLOG_FILE);
         if (_general_log_events) {
             _writeEvent("WARN", "system", "Event Log", "Log was erased due to probable file corruption");
         }
-        */
+#endif
     }
 
     // load the main system config file if we can. Otherwise create it and expect user to configure in web interface
@@ -2338,7 +2352,9 @@ void MyESP::_writeEvent(const char * type, const char * src, const char * desc, 
     // this will also create the file if its doesn't exist
     File eventlog = SPIFFS.open(MYESP_EVENTLOG_FILE, "a");
     if (!eventlog) {
-        // Serial.println("[SYSTEM] Error opening event log for writing"); // for debugging
+#ifdef MYESP_DEBUG
+        Serial.println("[SYSTEM] Error opening event log for writing");
+#endif
         eventlog.close();
         return;
     }
@@ -2403,8 +2419,10 @@ void MyESP::_sendEventLog(uint8_t page) {
 
         // see if we have reached the end of the string
         if (c == '\0' || c == '\n') {
-            char_buffer[char_count] = '\0';                                  // terminate and add it to the list
-            Serial.printf("Got line %d: %s\n", line_count + 1, char_buffer); // for debugging XXX
+            char_buffer[char_count] = '\0'; // terminate and add it to the list
+#ifdef MYESP_DEBUG
+            Serial.printf("Got line %d: %s\n", line_count + 1, char_buffer);
+#endif
             list.add(char_buffer);
             // increment line counter and check if we've reached 10 records, if so abort
             if (++line_count == 10) {
@@ -2438,8 +2456,10 @@ void MyESP::_sendEventLog(uint8_t page) {
     char   buffer[MYESP_JSON_MAXSIZE];
     size_t len = serializeJson(root, buffer);
 
-    Serial.printf("\nEVENTLOG: page %d, length=%d\n", page, len); // turn on for debugging XXX
-    serializeJson(root, Serial);                                  // turn on for debugging XXX
+#ifdef MYESP_DEBUG
+    Serial.printf("\nEVENTLOG: page %d, length=%d\n", page, len);
+    serializeJson(root, Serial);
+#endif
 
     _ws->textAll(buffer, len);
     _ws->textAll("{\"command\":\"result\",\"resultof\":\"eventlist\",\"result\": true}");
@@ -2501,7 +2521,9 @@ void MyESP::_procMsg(AsyncWebSocketClient * client, size_t sz) {
     }
 
     const char * command = doc["command"];
-    // Serial.printf("*** Got command: %s\n", command); // turn on for debugging
+#ifdef MYESP_DEBUG
+    Serial.printf("*** Got command: %s\n", command);
+#endif
 
     // Check whatever the command is and act accordingly
     if (strcmp(command, "configfile") == 0) {
@@ -2575,7 +2597,10 @@ bool MyESP::_fs_sendConfig() {
     }
     configFile.close();
 
-    //Serial.printf("_fs_sendConfig() sending system (%d): %s\n", size, json); // turn on for debugging
+#ifdef MYESP_DEBUG
+    Serial.printf("_fs_sendConfig() sending system (%d): %s\n", size, json);
+#endif
+
     _ws->textAll(json, size);
 
     configFile = SPIFFS.open(MYESP_CUSTOMCONFIG_FILE, "r");
@@ -2593,7 +2618,10 @@ bool MyESP::_fs_sendConfig() {
     }
     configFile.close();
 
-    //Serial.printf("_fs_sendConfig() sending custom (%d): %s\n", size, json); // turn on for debugging
+#ifdef MYESP_DEBUG
+    Serial.printf("_fs_sendConfig() sending custom (%d): %s\n", size, json);
+#endif
+
     _ws->textAll(json, size);
 
     return true;
@@ -2620,7 +2648,10 @@ void MyESP::_sendCustomStatus() {
 
     char   buffer[MYESP_JSON_MAXSIZE];
     size_t len = serializeJson(root, buffer);
-    // Serial.printf("_sendCustomStatus() sending: %s\n", buffer); // turn on for debugging
+
+#ifdef MYESP_DEBUG
+    Serial.printf("_sendCustomStatus() sending: %s\n", buffer);
+#endif
 
     _ws->textAll(buffer, len);
 }
@@ -2772,17 +2803,23 @@ void MyESP::_webserver_setup() {
                        if (!index) {
                            ETS_UART_INTR_DISABLE(); // disable all UART interrupts to be safe
                            _writeEvent("INFO", "system", "Firmware update started", "");
-                           //Serial.printf("[SYSTEM] Firmware update started: %s\n", filename.c_str()); // enable for debugging
+#ifdef MYESP_DEBUG
+                           Serial.printf("[SYSTEM] Firmware update started: %s\n", filename.c_str());
+#endif
                            Update.runAsync(true);
                            if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
                                _writeEvent("ERRO", "system", "Not enough space to update", "");
-                               //Update.printError(Serial); // enable for debugging
+#ifdef MYESP_DEBUG
+                               Update.printError(Serial);
+#endif
                            }
                        }
                        if (!Update.hasError()) {
                            if (Update.write(data, len) != len) {
                                _writeEvent("ERRO", "system", "Writing to flash failed", "");
-                               //Update.printError(Serial);  // enable for debugging
+#ifdef MYESP_DEBUG
+                               Update.printError(Serial);
+#endif
                            }
                        }
                        if (final) {
@@ -2791,7 +2828,9 @@ void MyESP::_webserver_setup() {
                                _shouldRestart = !Update.hasError();
                            } else {
                                _writeEvent("ERRO", "system", "Firmware update failed", "");
-                               //Update.printError(Serial); // enable for debugging
+#ifdef MYESP_DEBUG
+                               Update.printError(Serial);
+#endif
                            }
                        }
                    });
@@ -2894,7 +2933,9 @@ void MyESP::_addMQTTLog(const char * topic, const char * payload, const MYESP_MQ
     uint8_t        logPointer = 0;
     bool           found      = false;
 
-    // myDebug("_addMQTTLog [#%d] %s (%d) [%s] (%d)", logCount, topic, strlen(topic), payload, strlen(payload)); // for debugging
+#ifdef MYESP_DEBUG
+    myDebug("_addMQTTLog [#%d] %s (%d) [%s] (%d)", logCount, topic, strlen(topic), payload, strlen(payload));
+#endif
 
     // find the topic
     // topics must be unique for either publish or subscribe
