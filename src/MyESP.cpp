@@ -205,6 +205,8 @@ void MyESP::_wifiCallback(justwifi_messages_t code, char * parameter) {
         WiFi.setSleepMode(WIFI_NONE_SLEEP); // added to possibly fix wifi dropouts in arduino core 2.5.0
 #endif
 
+        _wifi_connected = true;
+
         jw.enableAPFallback(false); // Disable AP mode after initial connect was successful - test for https://github.com/proddy/EMS-ESP/issues/187
 
         myDebug_P(PSTR("[WIFI] Connected to SSID %s (hostname: %s, IP: %s)"), WiFi.SSID().c_str(), _getESPhostname().c_str(), WiFi.localIP().toString().c_str());
@@ -238,9 +240,6 @@ void MyESP::_wifiCallback(justwifi_messages_t code, char * parameter) {
         }
         */
 
-        // MQTT Setup
-        _mqtt_setup();
-
         // if we don't want Serial anymore, turn it off
         if (!_general_serial) {
             myDebug_P(PSTR("[SYSTEM] Disabling serial port communication"));
@@ -260,8 +259,6 @@ void MyESP::_wifiCallback(justwifi_messages_t code, char * parameter) {
         if (_wifi_callback_f) {
             _wifi_callback_f();
         }
-
-        _wifi_connected = true;
     }
 
     if (code == MESSAGE_ACCESSPOINT_CREATED) {
@@ -429,9 +426,9 @@ bool MyESP::mqttPublish(const char * topic, const char * payload, bool retain) {
 
 // MQTT onConnect - when a connect is established
 void MyESP::_mqttOnConnect() {
-    myDebug_P(PSTR("[MQTT] MQTT connected established"));
-    _mqtt_reconnect_delay = MQTT_RECONNECT_DELAY_MIN;
+    myDebug_P(PSTR("[MQTT] MQTT connected"));
 
+    _mqtt_reconnect_delay = MQTT_RECONNECT_DELAY_MIN;
     _mqtt_last_connection = millis();
 
     // say we're alive to the Last Will topic
@@ -454,17 +451,11 @@ void MyESP::_mqttOnConnect() {
 
 // MQTT setup
 void MyESP::_mqtt_setup() {
-    if (!_mqtt_enabled) {
-        myDebug_P(PSTR("[MQTT] is disabled"));
-    }
-
     mqttClient.onConnect([this](bool sessionPresent) { _mqttOnConnect(); });
 
     mqttClient.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
         if (reason == AsyncMqttClientDisconnectReason::TCP_DISCONNECTED) {
-            _increaseSystemDropoutCounter(); // +1 to number of disconnects
-            myDebug_P(PSTR("[MQTT] TCP Disconnected (count %d)"), _getSystemDropoutCounter());
-            (_mqtt_callback_f)(MQTT_DISCONNECT_EVENT, nullptr, nullptr); // call callback with disconnect
+            myDebug_P(PSTR("[MQTT] TCP Disconnected"));
         }
         if (reason == AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED) {
             myDebug_P(PSTR("[MQTT] Identifier Rejected"));
@@ -482,6 +473,10 @@ void MyESP::_mqtt_setup() {
         // Reset reconnection delay
         _mqtt_last_connection = millis();
         _mqtt_connecting      = false;
+
+        _increaseSystemDropoutCounter(); // +1 to number of disconnects
+        myDebug_P(PSTR("[MQTT] Disconnected! (count %d)"), _getSystemDropoutCounter());
+        (_mqtt_callback_f)(MQTT_DISCONNECT_EVENT, nullptr, nullptr); // call callback with disconnect
     });
 
     //mqttClient.onSubscribe([this](uint16_t packetId, uint8_t qos) { myDebug_P(PSTR("[MQTT] Subscribe ACK for PID %d"), packetId); });
@@ -490,6 +485,26 @@ void MyESP::_mqtt_setup() {
     mqttClient.onMessage([this](char * topic, char * payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
         _mqttOnMessage(topic, payload, len);
     });
+
+    mqttClient.setServer(_mqtt_ip, _mqtt_port);
+    mqttClient.setClientId(_general_hostname);
+    mqttClient.setKeepAlive(_mqtt_keepalive);
+    mqttClient.setCleanSession(false);
+
+    // last will
+    if (_hasValue(_mqtt_will_topic)) {
+        //myDebug_P(PSTR("[MQTT] Setting last will topic %s"), _mqttTopic(_mqtt_will_topic));
+        mqttClient.setWill(_mqttTopic(_mqtt_will_topic), 1, true,
+                           _mqtt_will_offline_payload); // retain always true
+    }
+
+    // set credentials if we have them
+    if (_hasValue(_mqtt_user)) {
+        mqttClient.setCredentials(_mqtt_user, _mqtt_password);
+    }
+
+    _mqtt_connecting      = false;
+    _mqtt_last_connection = millis();
 }
 
 // WiFI setup
@@ -1457,7 +1472,6 @@ void MyESP::heartbeatPrint() {
     );
 }
 
-
 // handler for Telnet
 void MyESP::_telnetHandle() {
     SerialAndTelnet.handle();
@@ -1545,26 +1559,8 @@ void MyESP::_mqttConnect() {
         _mqtt_reconnect_delay = MQTT_RECONNECT_DELAY_MAX;
     }
 
-    mqttClient.setServer(_mqtt_ip, _mqtt_port);
-    mqttClient.setClientId(_general_hostname);
-    mqttClient.setKeepAlive(_mqtt_keepalive);
-    mqttClient.setCleanSession(false);
-
-    // last will
-    if (_hasValue(_mqtt_will_topic)) {
-        //myDebug_P(PSTR("[MQTT] Setting last will topic %s"), _mqttTopic(_mqtt_will_topic));
-        mqttClient.setWill(_mqttTopic(_mqtt_will_topic), 1, true,
-                           _mqtt_will_offline_payload); // retain always true
-    }
-
-    if (_hasValue(_mqtt_user)) {
-        myDebug_P(PSTR("[MQTT] Connecting to MQTT using user %s..."), _mqtt_user);
-        mqttClient.setCredentials(_mqtt_user, _mqtt_password);
-    } else {
-        myDebug_P(PSTR("[MQTT] Connecting to MQTT..."));
-    }
-
     // Connect to the MQTT broker
+    myDebug_P(PSTR("[MQTT] Connecting to MQTT..."));
     mqttClient.connect();
 }
 
@@ -3033,6 +3029,7 @@ void MyESP::begin(const char * app_hostname, const char * app_name, const char *
     _eeprom_setup();       // set up EEPROM for storing crash data, if compiled with -DCRASH
     _fs_setup();           // SPIFFS setup, do this first to get values
     _wifi_setup();         // WIFI setup
+    _mqtt_setup();         // MQTT setup
     _ota_setup();          // init OTA
     _webserver_setup();    // init web server
 

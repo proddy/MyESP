@@ -16,7 +16,7 @@ function listcustom() {
 function savecustom() {
     custom_config.hardware.ledpin = parseInt(document.getElementById("ledpin").value);
 
-    custom_uncommited();
+    custom_saveconfig();
 }
 
 function listCustomStats() {

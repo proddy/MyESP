@@ -80,12 +80,12 @@ build_environments() {
     # mkdir -p $destination
 
     for environment in $environments; do
-        echo "* myesp-$version-$environment.bin"
+        echo "* EMS-ESP-$version-$environment.bin"
         platformio run --silent --environment $environment || exit 1
         stat_bytes .pio/build/$environment/firmware.bin
-        # mv .pio/build/$environment/firmware.bin $destination/myesp-$version-$environment.bin
-        # mv .pio/build/$environment/firmware.bin myesp-$version-$environment.bin
-        mv .pio/build/$environment/firmware.bin myesp-dev-$environment.bin
+        # mv .pio/build/$environment/firmware.bin $destination/EMS-ESP-$version-$environment.bin
+        # mv .pio/build/$environment/firmware.bin EMS-ESP-$version-$environment.bin
+        mv .pio/build/$environment/firmware.bin EMS-ESP-dev-$environment.bin
     done
     echo "--------------------------------------------------------------" 
 }
@@ -161,7 +161,7 @@ shift $((OPTIND-1))
 
 # Welcome message
 echo "--------------------------------------------------------------"
-echo "FIRMWARE BUILDER"
+echo "EMS-ESP FIRMWARE BUILDER"
 echo "Building for version ${version}" ${git_revision:+($git_revision)}
 
 # Environments to build
