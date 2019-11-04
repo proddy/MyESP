@@ -11,8 +11,6 @@
 
 #define MYESP_VERSION "1.2.16"
 
-#include "TimeLib.h" // customized version of the Time library
-#include "Timezone.h"
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <AsyncMqttClient.h> // https://github.com/marvinroger/async-mqtt-client and for ESP32 see https://github.com/marvinroger/async-mqtt-client/issues/127
@@ -22,11 +20,6 @@
 #include <JustWifi.h> // https://github.com/xoseperez/justwifi
 
 #include "Ntp.h"
-#define NTP_PACKET_SIZE 48      // NTP time is in the first 48 bytes of message
-#define NTP_INTERVAL_DEFAULT 60 // every hour
-#define NTP_TIMEZONE_DEFAULT 2  // CE
-#define NTP_TIMEZONE_MAX 9
-
 #include "TelnetSpy.h" // modified from https://github.com/yasheena/telnetspy
 
 #ifdef CRASH
