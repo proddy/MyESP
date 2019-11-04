@@ -9,8 +9,10 @@
 #ifndef MyESP_h
 #define MyESP_h
 
-#define MYESP_VERSION "1.2.15"
+#define MYESP_VERSION "1.2.16"
 
+#include "TimeLib.h" // customized version of the Time library
+#include "Timezone.h"
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <AsyncMqttClient.h> // https://github.com/marvinroger/async-mqtt-client and for ESP32 see https://github.com/marvinroger/async-mqtt-client/issues/127
@@ -18,13 +20,11 @@
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 #include <JustWifi.h> // https://github.com/xoseperez/justwifi
-#include "TimeLib.h" // customized version of the Time library
-#include "Timezone.h"
 
 #include "Ntp.h"
-#define NTP_PACKET_SIZE 48 // NTP time is in the first 48 bytes of message
+#define NTP_PACKET_SIZE 48      // NTP time is in the first 48 bytes of message
 #define NTP_INTERVAL_DEFAULT 60 // every hour
-#define NTP_TIMEZONE_DEFAULT 2 // CE
+#define NTP_TIMEZONE_DEFAULT 2  // CE
 #define NTP_TIMEZONE_MAX 9
 
 #include "TelnetSpy.h" // modified from https://github.com/yasheena/telnetspy
@@ -233,14 +233,14 @@ typedef struct {
     time_t  timestamp;
 } _MQTT_Log_t;
 
-typedef std::function<void(unsigned int, const char *, const char *)>            mqtt_callback_f;
-typedef std::function<void()>                                                    wifi_callback_f;
-typedef std::function<void()>                                                    ota_callback_f;
-typedef std::function<void(uint8_t, const char *)>                               telnetcommand_callback_f;
-typedef std::function<void(uint8_t)>                                             telnet_callback_f;
+typedef std::function<void(unsigned int, const char *, const char *)>              mqtt_callback_f;
+typedef std::function<void()>                                                      wifi_callback_f;
+typedef std::function<void()>                                                      ota_callback_f;
+typedef std::function<void(uint8_t, const char *)>                                 telnetcommand_callback_f;
+typedef std::function<void(uint8_t)>                                               telnet_callback_f;
 typedef std::function<bool(MYESP_FSACTION_t, JsonObject json)>                     fs_loadsave_callback_f;
 typedef std::function<bool(MYESP_FSACTION_t, uint8_t, const char *, const char *)> fs_setlist_callback_f;
-typedef std::function<void(JsonObject root)>                                     web_callback_f;
+typedef std::function<void(JsonObject root)>                                       web_callback_f;
 
 // calculates size of an 2d array at compile time
 template <typename T, size_t N>
