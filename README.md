@@ -4,25 +4,21 @@ General framework for ESP8266/ESP32 with Web,WiFi,MQTT,MDNS,Telnet,Crash detecti
 ## install & setup
 
 * download and install NodeJS from https://nodejs.org/en/download/ 
-* `npm install gulp` or for osx `sudo npm install gulp-cli -g`
-* `npm install ws` (from https://github.com/websockets/ws)
-* reboot and restart PlatformIDE
+* in both the wsemulator and webfilesbuilder folders do `npm ci`
 
-## build web files
+## build web files manually
 
-```
+```sh
 cd webfilesbuilder
 gulp
 ```
 
 ## run test server with chrome
 
-```
+```sh
 cd wsemulator
-node wserver.js
+run.sh or run.bat
 ```
-or
-`run.sh` or `run.bat`
 
 use password 'neo'
 
@@ -30,7 +26,7 @@ can also use with VSC using the Chrome debugger
 
 ## testing websockets
 
-```
+```sh
 npm install -g wscat
 wscat -c ws://localhost
 ```
