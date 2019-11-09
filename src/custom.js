@@ -1,6 +1,6 @@
 var custom_config = {
     "command": "custom_configfile",
-    "hardware": {
+    "settings": {
         "ledpin": 2
     }
 }
@@ -10,11 +10,11 @@ function custom_commit() {
 }
 
 function listcustom() {
-    document.getElementById("ledpin").value = custom_config.hardware.ledpin;
+    document.getElementById("ledpin").value = custom_config.settings.ledpin;
 }
 
 function savecustom() {
-    custom_config.hardware.ledpin = parseInt(document.getElementById("ledpin").value);
+    custom_config.settings.ledpin = parseInt(document.getElementById("ledpin").value);
 
     custom_saveconfig();
 }

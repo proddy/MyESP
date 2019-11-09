@@ -1,5 +1,5 @@
 /*
- * MyESP.h
+ * MyESP.h - does all the basics like WiFI/MQTT/NTP/Debug logs etc
  *
  * Paul Derbyshire - first version December 2018
  */
@@ -9,15 +9,14 @@
 #ifndef MyESP_h
 #define MyESP_h
 
-#define MYESP_VERSION "1.2.16"
+#define MYESP_VERSION "1.2.18"
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <AsyncMqttClient.h> // https://github.com/marvinroger/async-mqtt-client and for ESP32 see https://github.com/marvinroger/async-mqtt-client/issues/127
-#include <ESPAsyncUDP.h>
+#include <AsyncMqttClient.h>
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
-#include <JustWifi.h> // https://github.com/xoseperez/justwifi
+#include <JustWifi.h>
 
 #include "Ntp.h"
 #include "TelnetSpy.h" // modified from https://github.com/yasheena/telnetspy
@@ -66,6 +65,10 @@ extern struct rst_info resetInfo;
 // WIFI
 #define MYESP_WIFI_CONNECT_TIMEOUT 20000     // Connecting timeout for WIFI in ms (20 seconds)
 #define MYESP_WIFI_RECONNECT_INTERVAL 600000 // If could not connect to WIFI, retry after this time in ms. 10 minutes
+
+// set to value >0 if the ESP is overheating or there are timing issues. Recommend a value of 1.
+// initially set to 0 for no delay. Change to 1 if getting WDT resets from wifi
+#define MYESP_DELAY 1
 
 // MQTT
 #define MQTT_PORT 1883                  // MQTT port
@@ -485,10 +488,10 @@ class MyESP {
     void _webResetAllPage();
 
     // ntp
-    char *  _ntp_server;
-    uint8_t _ntp_interval;
-    bool    _ntp_enabled;
-    uint8_t _ntp_timezone;
+    char *   _ntp_server;
+    uint16_t _ntp_interval;
+    bool     _ntp_enabled;
+    uint8_t  _ntp_timezone;
 };
 
 extern MyESP myESP;

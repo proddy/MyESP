@@ -95,18 +95,22 @@ void MQTTCallback(unsigned int type, const char * topic, const char * message) {
 }
 
 // callback for loading/saving settings to the file system (SPIFFS)
-bool LoadSaveCallback(MYESP_FSACTION_t action, JsonObject json) {
+bool LoadSaveCallback(MYESP_FSACTION_t action, JsonObject settings) {
     if (action == MYESP_FSACTION_LOAD) {
-        const JsonObject & hardware = json["hardware"];
-        _ledpin                     = hardware["ledpin"];
+        // check for valid json
+        if (settings.isNull()) {
+            myDebug_P(PSTR("Error processing json settings"));
+            return false;
+        }
+
+        _ledpin = settings["ledpin"];
 
         return true;
     }
 
     // save action - here we modify the Json object directly. We get an empty json doc.
     if (action == MYESP_FSACTION_SAVE) {
-        JsonObject hardware = json.createNestedObject("hardware");
-        hardware["ledpin"]  = _ledpin;
+        settings["ledpin"]  = _ledpin;
 
         return true;
     }

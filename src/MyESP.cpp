@@ -201,10 +201,6 @@ uint32_t MyESP::_getInitialFreeHeap() {
 // called when WiFi is connected, and used to start OTA, MQTT
 void MyESP::_wifiCallback(justwifi_messages_t code, char * parameter) {
     if (code == MESSAGE_CONNECTED) {
-#if defined(ESP8266)
-        WiFi.setSleepMode(WIFI_NONE_SLEEP); // added to possibly fix wifi dropouts in arduino core 2.5.0
-#endif
-
         _wifi_connected = true;
 
         jw.enableAPFallback(false); // Disable AP mode after initial connect was successful - test for https://github.com/proddy/EMS-ESP/issues/187
@@ -514,9 +510,18 @@ void MyESP::_mqtt_setup() {
 // WiFI setup
 void MyESP::_wifi_setup() {
     jw.setHostname(_general_hostname); // Set WIFI hostname
-    jw.subscribe([this](justwifi_messages_t code, char * parameter) { _wifiCallback(code, parameter); });
     jw.setConnectTimeout(MYESP_WIFI_CONNECT_TIMEOUT);
     jw.setReconnectTimeout(MYESP_WIFI_RECONNECT_INTERVAL);
+
+#if defined(ESP8266)
+    WiFi.setSleepMode(WIFI_NONE_SLEEP); // added to possibly fix wifi dropouts in arduino core 2.5.0
+    // ref: https://github.com/esp8266/Arduino/issues/6471
+    // ref: https://github.com/esp8266/Arduino/issues/6366
+    // high tx power causing weird behavior, slighly lowering from 20.5 to 20.0 may help stability
+    WiFi.setOutputPower(20.0); // in DBM
+#endif
+
+    jw.subscribe([this](justwifi_messages_t code, char * parameter) { _wifiCallback(code, parameter); });
 
     /// wmode 1 is AP, 0 is client
     if (_network_wmode == 1) {
@@ -730,14 +735,14 @@ void MyESP::_printSetCommands() {
     myDebug_P(PSTR("  set <wifi_ssid | wifi_password> [value]"));
     myDebug_P(PSTR("  set mqtt_enabled <on | off>"));
     myDebug_P(PSTR("  set <mqtt_ip | mqtt_username | mqtt_password> [value]"));
-    myDebug_P(PSTR("  set mqtt_heartbeat <on | off>"));
+    myDebug_P(PSTR("  set mqtt_heartbeat <on | off> (every 2 mins)"));
     myDebug_P(PSTR("  set mqtt_base [string]"));
     myDebug_P(PSTR("  set mqtt_port [number]"));
-    myDebug_P(PSTR("  set mqtt_qos [0,1,2,3]"));
+    myDebug_P(PSTR("  set mqtt_qos [0-3]"));
     myDebug_P(PSTR("  set mqtt_keepalive [seconds]"));
     myDebug_P(PSTR("  set mqtt_retain [on | off]"));
     myDebug_P(PSTR("  set ntp_enabled <on | off>"));
-    myDebug_P(PSTR("  set ntp_interval [n]"));
+    myDebug_P(PSTR("  set ntp_interval [minutes]"));
     myDebug_P(PSTR("  set ntp_timezone [n]"));
     myDebug_P(PSTR("  set serial <on | off>"));
     myDebug_P(PSTR("  set log_events <on | off>"));
@@ -3124,7 +3129,7 @@ void MyESP::loop() {
         ESP.restart();
     }
 
-    yield(); // ... and breath.
+    delay(MYESP_DELAY); // some time to WiFi and everything else to catch up, and prevent overheating
 }
 
 MyESP myESP;
