@@ -8,12 +8,11 @@
 // default APP params
 #define APP_NAME "myesp"
 #define APP_HOSTNAME "myesp"
-#define APP_URL "https://github.com/proddy/EMS-ESP"
-#define APP_URL_API "https://api.github.com/repos/proddy/EMS-ESP"
+#define APP_URL "https://github.com/proddy/MyESP"
+#define APP_URL_API "https://api.github.com/repos/proddy/MyESP"
 
 #define myDebug(...) myESP.myDebug(__VA_ARGS__)
 #define myDebug_P(...) myESP.myDebug_P(__VA_ARGS__)
-
 
 // global params
 uint16_t _ledpin;
