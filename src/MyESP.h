@@ -9,7 +9,7 @@
 #ifndef MyESP_h
 #define MyESP_h
 
-#define MYESP_VERSION "1.2.18"
+#define MYESP_VERSION "1.2.21"
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -18,6 +18,14 @@
 #include <FS.h>
 #include <JustWifi.h>
 
+// SysLog
+#include <uuid/common.h>
+#include <uuid/log.h>
+#include <uuid/syslog.h>
+static uuid::syslog::SyslogService syslog;
+enum MYESP_SYSLOG_LEVEL : uint8_t { MYESP_SYSLOG_INFO, MYESP_SYSLOG_ERROR };
+
+// local libraries
 #include "Ntp.h"
 #include "TelnetSpy.h" // modified from https://github.com/yasheena/telnetspy
 
@@ -53,7 +61,8 @@ extern struct rst_info resetInfo;
 
 #define MYESP_CONFIG_FILE "/myesp.json"
 #define MYESP_CUSTOMCONFIG_FILE "/customconfig.json"
-#define MYESP_EVENTLOG_FILE "/eventlog.json"
+#define MYESP_OLD_EVENTLOG_FILE "/eventlog.json" // depreciated
+#define MYESP_OLD_CONFIG_FILE "/config.json"     // depreciated
 
 #define MYESP_HTTP_USERNAME "admin" // HTTP username
 #define MYESP_HTTP_PASSWORD "admin" // default password
@@ -67,7 +76,6 @@ extern struct rst_info resetInfo;
 #define MYESP_WIFI_RECONNECT_INTERVAL 600000 // If could not connect to WIFI, retry after this time in ms. 10 minutes
 
 // set to value >0 if the ESP is overheating or there are timing issues. Recommend a value of 1.
-// initially set to 0 for no delay. Change to 1 if getting WDT resets from wifi
 #define MYESP_DELAY 1
 
 // MQTT
@@ -145,10 +153,9 @@ PROGMEM const char * const custom_reset_string[]   = {custom_reset_hardware, cus
 #define CUSTOM_RESET_FACTORY 5  // Factory reset
 #define CUSTOM_RESET_MAX 5
 
-// SPIFFS
+// SPIFFS - max allocation is 1000 KB
 // https://arduinojson.org/v6/assistant/
-#define MYESP_SPIFFS_MAXSIZE_CONFIG 800     // max size for a config file
-#define MYESP_SPIFFS_MAXSIZE_EVENTLOG 20000 // max size for the eventlog in bytes
+#define MYESP_SPIFFS_MAXSIZE_CONFIG 999 // max size for a config file
 
 // CRASH
 /**
@@ -266,9 +273,6 @@ class MyESP {
     MyESP();
     ~MyESP();
 
-    // write event called from within lambda classs
-    static void _writeEvent(const char * type, const char * src, const char * desc, const char * data);
-
     // wifi
     void setWIFICallback(void (*callback)());
     void setWIFI(wifi_callback_f callback);
@@ -292,6 +296,9 @@ class MyESP {
     void setTelnet(telnetcommand_callback_f callback_cmd, telnet_callback_f callback);
     bool getUseSerial();
     void setUseSerial(bool toggle);
+
+    // syslog
+    void writeLogEvent(const uint8_t type, const char * msg);
 
     // FS
     void setSettings(fs_loadsave_callback_f loadsave, fs_setlist_callback_f setlist, bool useSerial = true);
@@ -367,6 +374,10 @@ class MyESP {
     char *          _network_ssid;
     char *          _network_password;
     uint8_t         _network_wmode;
+    char *          _network_staticip;
+    char *          _network_gatewayip;
+    char *          _network_nmask;
+    char *          _network_dnsip;
     bool            _wifi_connected;
     String          _getESPhostname();
 
@@ -379,7 +390,7 @@ class MyESP {
     // crash
     void _eeprom_setup();
 
-    // telnet & debug
+    // telnet
     TelnetSpy                SerialAndTelnet;
     void                     _telnetConnected();
     void                     _telnetDisconnected();
@@ -392,6 +403,9 @@ class MyESP {
     telnetcommand_callback_f _telnetcommand_callback_f; // Callable for projects commands
     telnet_callback_f        _telnet_callback_f;        // callback for connect/disconnect
     bool                     _changeSetting(uint8_t wc, const char * setting, const char * value);
+
+    // syslog
+    void _syslog_setup();
 
     // fs and settings
     void   _fs_setup();
@@ -419,6 +433,7 @@ class MyESP {
     bool          _suspendOutput;
     bool          _general_serial;
     bool          _general_log_events;
+    char *        _general_log_ip;
     char *        _buildTime;
     bool          _timerequest;
     bool          _formatreq;
@@ -470,10 +485,6 @@ class MyESP {
     // web
     web_callback_f _web_callback_f;
     const char *   _http_username;
-
-    // log
-    void _sendEventLog(uint8_t page);
-    void _emptyEventLog();
 
     // web
     void _onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t * data, size_t len);

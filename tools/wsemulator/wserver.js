@@ -64,14 +64,20 @@ var configfile = {
     "network": {
         "ssid": "myssid",
         "wmode": 0,
-        "password": "password"
+        "password": "password",
+        "password": "",
+        "staticip": "",
+        "gatewayip": "",
+        "nmask": "",
+        "dnsip": ""
     },
     "general": {
         "hostname": "myesp",
         "password": "admin",
         "serial": true,
         "version": "1.9.1",
-        "log_events": true
+        "log_events": false,
+        "log_ip": "192.168.1.4"
     },
     "mqtt": {
         "enabled": false,
@@ -96,16 +102,7 @@ var configfile = {
 var custom_configfile = {
     "command": "custom_configfile",
     "settings": {
-        "led": true,
-        "led_gpio": 2,
-        "dallas_gpio": 14,
-        "dallas_parasite": false,
-        "listen_mode": false,
-        "shower_timer": true,
-        "shower_alert": false,
-        "publish_time": 120,
-        "publish_always": false,
-        "tx_mode": 1
+        "ledpin": 2
     }
 };
 
@@ -136,15 +133,9 @@ function sendStatus() {
         "mqttconnected": true,
         "mqttheartbeat": false,
         "uptime": "0 days 0 hours 1 minute 45 seconds",
-        "mqttloghdr": "home/ems-esp/",
+        "mqttloghdr": "home/myesp/",
         "mqttlog": [
-            { "topic": "start", "payload": "start", "time": 1565956388 },
-            { "topic": "shower_timer", "payload": "1", "time": 1565956388 },
-            { "topic": "shower_alert", "payload": "0", "time": 1565956388 },
-            { "topic": "boiler_data", "payload": "{\"wWComfort\":\"Hot\",\"wWSelTemp\":60,\"selFlowTemp\":5,\"selBurnPow\":0,\"curBurnPow\":0,\"pumpMod\":0,\"wWCurTmp\":48.4,\"wWCurFlow\":0,\"curFlowTemp\":49.3,\"retTemp\":49.3,\"sysPress\":1.8,\"boilTemp\":50.5,\"wWActivated\":\"on\",\"burnGas\":\"off\",\"heatPmp\":\"off\",\"fanWork\":\"off\",\"ignWork\":\"off\",\"wWCirc\":\"off\",\"wWHeat\":\"on\",\"burnStarts\":223397,\"burnWorkMin\":366019,\"heatWorkMin\":294036,\"ServiceCode\":\"0H\",\"ServiceCodeNumber\":203}", "time": 1565956463 },
-            { "topic": "tapwater_active", "payload": "0", "time": 1565956408 },
-            { "topic": "heating_active", "payload": "0", "time": 1565956408 },
-            { "topic": "thermostat_data", "payload": "{\"thermostat_hc\":\"1\",\"thermostat_seltemp\":15,\"thermostat_currtemp\":23,\"thermostat_mode\":\"auto\"}", "time": 1565956444 }
+            { "topic": "start", "payload": "start", "time": 1565956388 }
         ]
     };
 
@@ -154,60 +145,15 @@ function sendStatus() {
 function sendCustomStatus() {
     var stats = {
         "command": "custom_status",
-        "version": "1.9.1",
-        "customname": "EMS-ESP",
-        "appurl": "https://github.com/proddy/EMS-ESP",
-        "updateurl": "https://api.github.com/repos/proddy/EMS-ESP/releases/latest",
-        "updateurl_dev": "https://api.github.com/repos/proddy/EMS-ESP/releases/tags/travis-dev-build",
+        "version": "1.0.0",
+        "customname": "MyESP",
+        "appurl": "https://github.com/proddy/MyESP",
+        "updateurl": "https://api.github.com/repos/proddy/MyESP/releases/latest",
+        "updateurl_dev": "https://api.github.com/repos/proddy/MyESP/releases/tags/travis-dev-build",
 
-        "emsbus": {
+        "test": {
             "ok": true,
-            "msg": "EMS Bus Connected with both Rx and Tx active.",
-            "devices": [
-                { "type": 1, "model": "Buderus GB172/Nefit Trendline/Junkers Cerapur", "version": "06.01", "productid": 123, "deviceid": "8" },
-                { "type": 5, "model": "BC10 Base Controller", "version": "01.03", "productid": 190, "deviceid": "9" },
-                { "type": 2, "model": "RC20/Nefit Moduline 300", "version": "03.03", "productid": 77, "deviceid": "17" },
-                { "type": 3, "model": "SM100 Solar Module", "version": "01.01", "productid": 163, "deviceid": "30" },
-                { "type": 4, "model": "HeatPump Module", "version": "01.01", "productid": 252, "deviceid": "38" }
-            ]
-        },
-
-        "thermostat": {
-            "ok": true,
-            "tm": "RC20/Nefit Moduline 300",
-            "ts": 15,
-            "tc": 24.5,
-            "tmode": "auto"
-        },
-
-        "boiler": {
-            "ok": true,
-            "bm": "Buderus GB172/Nefit Trendline/Junkers Cerapur",
-            "b1": "off",
-            "b2": "off",
-            "b3": 0,
-            "b4": 53,
-            "b5": 54.4,
-            "b6": 53.3
-        },
-
-        "sm": {
-            "ok": true,
-            "sm": "SM100 Solar Module",
-            "sm1": 34,
-            "sm2": 24,
-            "sm3": 60,
-            "sm4": "on",
-            "sm5": 2000,
-            "sm6": 3000,
-            "sm7": 123456
-        },
-
-        "hp": {
-            "ok": true,
-            "hm": "HeatPump Module",
-            "hp1": 66,
-            "hp2": 77
+            "msg": "Testing..."
         }
 
     };
@@ -248,23 +194,9 @@ wss.on('connection', function connection(ws) {
                 res.epoch = 1572613374; // this is 13:02:54 CET
                 wss.broadcast(res);
                 break;
-            case "settime":
-                console.log("[INFO] Setting time (fake)");
-                var res = {};
-                res.command = "gettime";
-                res.epoch = Math.floor((new Date).getTime() / 1000);
-                wss.broadcast(res);
-                break;
             case "getconf":
                 console.log("[INFO] Sending system configuration file (if set any)");
                 wss.broadcast(configfile);
-                break;
-            case "geteventlog":
-                console.log("[INFO] Sending eventlog");
-                sendEventLog();
-                break;
-            case "clearevent":
-                console.log("[INFO] Clearing eventlog");
                 break;
             case "restart":
                 console.log("[INFO] Restart");
